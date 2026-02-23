@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+
 # 共有カレンダーアプリケーション
 
 Next.js + Firebase で構築された、チームで予定を共有できるカレンダーアプリケーションです。
@@ -57,15 +58,15 @@ service cloud.firestore {
     match /events/{eventId} {
       // 認証済みユーザーは全てのイベントを読み取り可能
       allow read: if request.auth != null;
-      
+
       // 認証済みユーザーはイベントを作成可能
       allow create: if request.auth != null;
-      
+
       // 認証済みユーザーはイベントを更新可能（承諾機能のため）
       allow update: if request.auth != null;
-      
+
       // イベント作成者のみ削除可能
-      allow delete: if request.auth != null && 
+      allow delete: if request.auth != null &&
                       request.auth.uid == resource.data.creatorId;
     }
   }
@@ -102,24 +103,29 @@ npm run dev
 ## 使い方
 
 ### ログイン
+
 1. トップページで「Googleでログイン」ボタンをクリック
 2. Googleアカウントを選択してログイン
 
 ### 予定の作成
+
 1. 「予定を追加」ボタンをクリック、または カレンダーのセルをクリック
 2. タイトル、日付、時間、時間数を入力
 3. 「作成」ボタンをクリック
 
 ### 予定の閲覧
+
 - カレンダー上の予定をクリックすると詳細が表示されます
 - 作成者と承諾した参加者のアイコンが表示されます
 
 ### 予定の承諾
+
 1. 他のユーザーが作成した予定をクリック
 2. 「承諾する」ボタンをクリック
 3. あなたのアイコンが参加者リストに追加されます
 
 ### 予定の削除
+
 - 自分が作成した予定の詳細画面で「削除」ボタンをクリック
 
 ## デプロイ
@@ -158,11 +164,13 @@ src/
 ## トラブルシューティング
 
 ### Firebase エラー
+
 - Firebase設定が正しいか確認してください
 - Firestore ルールが設定されているか確認してください
 - Authentication で Google ログインが有効になっているか確認してください
 
 ### 画像が表示されない
+
 - `next.config.js` で `lh3.googleusercontent.com` がドメインリストに含まれているか確認してください
 
 ## ライセンス
@@ -171,8 +179,10 @@ MIT
 
 ## 貢献
 
-プルリクエストを歓迎します！大きな変更の場合は、まずissueを開いて変更内容を議論してください。
-=======
+# プルリクエストを歓迎します！大きな変更の場合は、まずissueを開いて変更内容を議論してください。
+
 # shared-calendar2
+
 複数人で使えるスケジュール管理アプリ
->>>>>>> ca7bd2bcfb80387fe3b6b247a9f1c2e7d3cac3bb
+
+> > > > > > > ca7bd2bcfb80387fe3b6b247a9f1c2e7d3cac3bb
