@@ -10,6 +10,7 @@ interface EventDetailModalProps {
   onClose: () => void;
   onAccept: (eventId: string) => Promise<void>;
   onDelete: (eventId: string) => Promise<void>;
+  onEdit: (event: CalendarEvent) => void;
 }
 
 function formatDateTime(date: Date): string {
@@ -28,6 +29,7 @@ export default function EventDetailModal({
   onClose,
   onAccept,
   onDelete,
+  onEdit,
 }: EventDetailModalProps) {
   if (!isOpen || !event) return null;
 
@@ -152,28 +154,36 @@ export default function EventDetailModal({
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 mt-6">
+          <div className="flex flex-wrap gap-3 mt-6">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 font-medium"
+              className="flex-1 min-w-[90px] px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 font-medium"
             >
               閉じる
             </button>
             {!isCreator && !hasAccepted && (
               <button
                 onClick={handleAccept}
-                className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200 font-medium shadow-md hover:shadow-lg"
+                className="flex-1 min-w-[110px] px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200 font-medium shadow-md hover:shadow-lg"
               >
                 承諾する
               </button>
             )}
             {isCreator && (
-              <button
-                onClick={handleDelete}
-                className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200 font-medium shadow-md hover:shadow-lg"
-              >
-                削除
-              </button>
+              <>
+                <button
+                  onClick={() => onEdit(event)}
+                  className="flex-1 min-w-[90px] px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors duration-200 font-medium"
+                >
+                  編集
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="flex-1 min-w-[90px] px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200 font-medium shadow-md hover:shadow-lg"
+                >
+                  削除
+                </button>
+              </>
             )}
           </div>
         </div>

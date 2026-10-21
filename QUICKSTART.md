@@ -76,6 +76,22 @@ NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123456789
 NEXT_PUBLIC_FIREBASE_APP_ID=1:123456789:web:xxxxx
 ```
 
+#### Discord 通知の設定（任意）
+
+1. Discord の通知先チャンネルで「チャンネルの編集」→「連携サービス」→「ウェブフック」を開く
+2. ウェブフックを作成し、ウェブフックURLをコピー
+3. Firebase コンソールの「プロジェクトの設定」→「サービス アカウント」で秘密鍵 JSON を生成
+4. `.env.local` に以下を追加し、サービスアカウント JSON 全体を1行で貼り付け
+
+```env
+DISCORD_WEBHOOK_URL=<DiscordのウェブフックURL>
+FIREBASE_SERVICE_ACCOUNT_KEY=<サービスアカウントJSON全体>
+```
+
+`FIREBASE_SERVICE_ACCOUNT_KEY` は秘密情報です。`NEXT_PUBLIC_` を付けず、Gitに登録しないでください。Vercelなどへデプロイする場合も、同じ変数をサーバー環境変数として登録してください。設定後、開発サーバーを再起動します。
+
+予定の作成・編集・参加承諾・削除がDiscordに通知されます。
+
 ### 7. 開発サーバーの起動
 
 ```bash

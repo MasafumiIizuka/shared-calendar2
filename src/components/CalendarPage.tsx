@@ -1,27 +1,30 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
-import { 
-  collection, 
-  addDoc, 
-  onSnapshot, 
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
+import {
+  collection,
+  addDoc,
+  onSnapshot,
   query,
   orderBy,
   Timestamp,
   doc,
   updateDoc,
-  deleteDoc,
-  arrayUnion
-} from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { CalendarEvent, CalendarEventInput } from '@/types';
-import Header from '@/components/Header';
-import CalendarNavigation from '@/components/CalendarNavigation';
-import CalendarGrid from '@/components/CalendarGrid';
-import AddEventModal from '@/components/AddEventModal';
-import EventDetailModal from '@/components/EventDetailModal';
+  arrayUnion,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import {
+  deleteEventWithNotification,
+  notifyDiscord,
+} from "@/lib/discord-notifications";
+import { CalendarEvent, CalendarEventInput } from "@/types";
+import Header from "@/components/Header";
+import CalendarNavigation from "@/components/CalendarNavigation";
+import CalendarGrid from "@/components/CalendarGrid";
+import AddEventModal from "@/components/AddEventModal";
+import EventDetailModal from "@/components/EventDetailModal";
 
 export default function CalendarPage() {
   const { user, loading } = useAuth();
@@ -38,22 +41,22 @@ export default function CalendarPage() {
   });
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(
+    null,
+  );
+  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [initialDate, setInitialDate] = useState<Date | undefined>();
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push('/');
+      router.push("/");
     }
   }, [user, loading, router]);
 
   useEffect(() => {
     if (!user) return;
 
-    const q = query(
-      collection(db, 'events'),
-      orderBy('startTime', 'asc')
-    );
+    const q = query(collection(db, "events"), orderBy("startTime", "asc"));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const eventsData: CalendarEvent[] = [];
@@ -69,63 +72,85 @@ export default function CalendarPage() {
     return () => unsubscribe();
   }, [user]);
 
-  const handleAddEvent = async (eventInput: CalendarEventInput) => {
+  const handleSaveEvent = async (eventInput: CalendarEventInput) => {
     if (!user) return;
 
-    await addDoc(collection(db, 'events'), {
+    const eventData = {
       title: eventInput.title,
-      description: eventInput.description || '',
+      description: eventInput.description || "",
       startTime: Timestamp.fromDate(eventInput.startTime),
       duration: eventInput.duration,
+    };
+
+    if (editingEvent) {
+      await updateDoc(doc(db, "events", editingEvent.id), eventData);
+      await notifyDiscord(editingEvent.id, "updated");
+      setEditingEvent(null);
+      return;
+    }
+
+    const eventRef = await addDoc(collection(db, "events"), {
+      ...eventData,
       creatorId: user.uid,
-      creatorName: user.displayName || 'Unknown',
-      creatorPhoto: user.photoURL || '',
-      creatorEmail: user.email || '',
+      creatorName: user.displayName || "Unknown",
+      creatorPhoto: user.photoURL || "",
+      creatorEmail: user.email || "",
       attendees: [],
       createdAt: Timestamp.now(),
     });
+    await notifyDiscord(eventRef.id, "created");
   };
 
   const handleAcceptEvent = async (eventId: string) => {
     if (!user) return;
 
-    const event = events.find(e => e.id === eventId);
+    const event = events.find((e) => e.id === eventId);
     if (!event) return;
 
     // Check if already accepted
-    if (event.attendees.some(a => a.id === user.uid)) {
-      alert('すでに承諾済みです');
+    if (event.attendees.some((a) => a.id === user.uid)) {
+      alert("すでに承諾済みです");
       return;
     }
 
-    const eventRef = doc(db, 'events', eventId);
+    const eventRef = doc(db, "events", eventId);
     await updateDoc(eventRef, {
       attendees: arrayUnion({
         id: user.uid,
-        name: user.displayName || 'Unknown',
-        photo: user.photoURL || '',
-        email: user.email || '',
+        name: user.displayName || "Unknown",
+        photo: user.photoURL || "",
+        email: user.email || "",
       }),
     });
+    await notifyDiscord(eventId, "accepted");
 
     // Refresh the selected event
-    const updatedEvent = events.find(e => e.id === eventId);
+    const updatedEvent = events.find((e) => e.id === eventId);
     if (updatedEvent) {
       setSelectedEvent({ ...updatedEvent });
     }
   };
 
   const handleDeleteEvent = async (eventId: string) => {
-    await deleteDoc(doc(db, 'events', eventId));
+    await deleteEventWithNotification(eventId);
+  };
+
+  const handleEditEvent = (event: CalendarEvent) => {
+    setSelectedEvent(null);
+    setIsDetailModalOpen(false);
+    setInitialDate(undefined);
+    setEditingEvent(event);
+    setIsAddModalOpen(true);
   };
 
   const handleCellClick = (datetime: Date) => {
+    setEditingEvent(null);
     setInitialDate(datetime);
     setIsAddModalOpen(true);
   };
 
   const handleEventClick = (eventId: string) => {
-    const event = events.find(e => e.id === eventId);
+    const event = events.find((e) => e.id === eventId);
     if (event) {
       setSelectedEvent(event);
       setIsDetailModalOpen(true);
@@ -165,7 +190,7 @@ export default function CalendarPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      
+
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <CalendarNavigation
           currentWeekStart={currentWeekStart}
@@ -173,6 +198,7 @@ export default function CalendarPage() {
           onToday={handleToday}
           onNextWeek={handleNextWeek}
           onAddEvent={() => {
+            setEditingEvent(null);
             setInitialDate(undefined);
             setIsAddModalOpen(true);
           }}
@@ -188,9 +214,13 @@ export default function CalendarPage() {
 
       <AddEventModal
         isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onSubmit={handleAddEvent}
+        onClose={() => {
+          setIsAddModalOpen(false);
+          setEditingEvent(null);
+        }}
+        onSubmit={handleSaveEvent}
         initialDate={initialDate}
+        eventToEdit={editingEvent ?? undefined}
       />
 
       <EventDetailModal
@@ -200,6 +230,7 @@ export default function CalendarPage() {
         onClose={() => setIsDetailModalOpen(false)}
         onAccept={handleAcceptEvent}
         onDelete={handleDeleteEvent}
+        onEdit={handleEditEvent}
       />
     </div>
   );

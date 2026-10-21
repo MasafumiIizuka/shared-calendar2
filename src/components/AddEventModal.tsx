@@ -1,13 +1,21 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CalendarEventInput } from '@/types';
+import { CalendarEvent, CalendarEventInput } from '@/types';
 
 interface AddEventModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (event: CalendarEventInput) => Promise<void>;
   initialDate?: Date;
+  eventToEdit?: CalendarEvent;
+}
+
+function formatDateInput(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 export default function AddEventModal({
@@ -15,6 +23,7 @@ export default function AddEventModal({
   onClose,
   onSubmit,
   initialDate,
+  eventToEdit,
 }: AddEventModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -24,11 +33,23 @@ export default function AddEventModal({
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (initialDate) {
-      setDate(initialDate.toISOString().split('T')[0]);
-      setTime(initialDate.toTimeString().slice(0, 5));
+    if (!isOpen) return;
+
+    if (eventToEdit) {
+      const startTime = eventToEdit.startTime.toDate();
+      setTitle(eventToEdit.title);
+      setDescription(eventToEdit.description || '');
+      setDate(formatDateInput(startTime));
+      setTime(startTime.toTimeString().slice(0, 5));
+      setDuration(eventToEdit.duration);
+    } else {
+      setTitle('');
+      setDescription('');
+      setDate(initialDate ? formatDateInput(initialDate) : '');
+      setTime(initialDate ? initialDate.toTimeString().slice(0, 5) : '');
+      setDuration(1);
     }
-  }, [initialDate]);
+  }, [eventToEdit, initialDate, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,7 +86,9 @@ export default function AddEventModal({
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">予定を追加</h2>
+            <h2 className="text-2xl font-bold text-gray-900">
+              {eventToEdit ? '予定を編集' : '予定を追加'}
+            </h2>
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
@@ -159,7 +182,7 @@ export default function AddEventModal({
                 disabled={submitting}
                 className="flex-1 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
               >
-                {submitting ? '作成中...' : '作成'}
+                {submitting ? '保存中...' : eventToEdit ? '更新' : '作成'}
               </button>
             </div>
           </form>
